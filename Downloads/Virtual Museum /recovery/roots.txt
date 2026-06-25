@@ -1,0 +1,24 @@
+Created At: 2026-06-24T06:29:40Z
+Completed At: 2026-06-24T06:29:41Z
+
+				The command completed successfully.
+				Output:
+				src/app/components/halls/AILabHall.tsx:6:const mockResults = [
+src/app/components/halls/AILabHall.tsx:47:const features = [
+src/app/components/halls/AILabHall.tsx:68:  const analyzeSteps = [
+src/app/components/halls/CryptographyHall.tsx:10:  return text.toUpperCase().split('').map(ch => { const idx = LATIN_ALPHABET.indexOf(ch); return idx === -1 ? ch : LATIN_ALPHABET[(idx + shift + 26) % 26]; }).join('');
+src/app/components/halls/CryptographyHall.tsx:14:  return text.split('').map(ch => { const idx = ARABIC_ALPHABET.indexOf(ch); return idx === -1 ? ch : ARABIC_ALPHABET[(idx + shift + ARABIC_ALPHABET.length) % ARABIC_ALPHABET.length]; }).join('');
+src/app/components/halls/CryptographyHall.tsx:17:const cipherHistory = [
+src/app/components/halls/CryptographyHall.tsx:24:const ENGLISH_FREQ = [8.17,1.49,2.78,4.25,12.7,2.23,2.02,6.09,6.97,0.15,0.77,4.03,2.41,6.75,7.51,1.93,0.1,5.99,6.33,9.06,2.76,0.98,2.36,0.15,1.97,0.07];
+src/app/components/halls/HistoryHall.tsx:7:const periods = [
+src/app/components/halls/HistoryHall.tsx:17:const artifacts = [
+src/app/components/halls/ManuscriptHall.tsx:6:const manuscripts = [
+src/app/components/halls/ManuscriptHall.tsx:140:  const types = ['all', ...Array.from(new Set(manuscripts.map(m => m.type)))];
+src/app/components/halls/QuranHall.tsx:6:const categories = [
+src/app/components/halls/QuranHall.tsx:22:const symbolData: Record<string, SE[]> = {
+src/app/components/halls/QuranHall.tsx:304:  const symbols = symbolData[activeCategory] ?? [];
+src/app/components/halls/SemanticsHall.tsx:9:const roots: Root[] = [
+src/app/components/halls/SemanticsHall.tsx:217:                  const color = TYPE_COLORS[node.type];
+src/app/components/halls/SemanticsHall.tsx:244:                const color = TYPE_COLORS[node.type];
+src/app/components/halls/SemioticsHall.tsx:6:const symbols = [
+

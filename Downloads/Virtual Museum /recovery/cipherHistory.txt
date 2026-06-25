@@ -1,0 +1,26 @@
+Created At: 2026-06-24T06:29:33Z
+Completed At: 2026-06-24T06:29:33Z
+
+				The command completed successfully.
+				Output:
+				src/app/components/halls/AILabHall.tsx:6:const mockResults = [
+src/app/components/halls/AILabHall.tsx:47:const features = [
+src/app/components/halls/AILabHall.tsx:56:  const [analyzing, setAnalyzing] = useState(false);
+src/app/components/halls/AILabHall.tsx:57:  const [showResults, setShowResults] = useState(false);
+src/app/components/halls/AILabHall.tsx:58:  const [dragOver, setDragOver] = useState(false);
+src/app/components/halls/AILabHall.tsx:59:  const [selectedResult, setSelectedResult] = useState<typeof mockResults[0] | null>(null);
+src/app/components/halls/AILabHall.tsx:60:  const [progress, setProgress] = useState(0);
+src/app/components/halls/AILabHall.tsx:61:  const [activeStep, setActiveStep] = useState(0);
+src/app/components/halls/AILabHall.tsx:62:  const [question, setQuestion] = useState('');
+src/app/components/halls/AILabHall.tsx:63:  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'ai'; text: string; textAr?: string }[]>([
+src/app/components/halls/AILabHall.tsx:68:  const analyzeSteps = [
+src/app/components/halls/CryptographyHall.tsx:10:  return text.toUpperCase().split('').map(ch => { const idx = LATIN_ALPHABET.indexOf(ch); return idx === -1 ? ch : LATIN_ALPHABET[(idx + shift + 26) % 26]; }).join('');
+src/app/components/halls/CryptographyHall.tsx:14:  return text.split('').map(ch => { const idx = ARABIC_ALPHABET.indexOf(ch); return idx === -1 ? ch : ARABIC_ALPHABET[(idx + shift + ARABIC_ALPHABET.length) % ARABIC_ALPHABET.length]; }).join('');
+src/app/components/halls/CryptographyHall.tsx:17:const cipherHistory = [
+src/app/components/halls/CryptographyHall.tsx:24:const ENGLISH_FREQ = [8.17,1.49,2.78,4.25,12.7,2.23,2.02,6.09,6.97,0.15,0.77,4.03,2.41,6.75,7.51,1.93,0.1,5.99,6.33,9.06,2.76,0.98,2.36,0.15,1.97,0.07];
+src/app/components/halls/CryptographyHall.tsx:28:  const [mode, setMode] = useState<'caesar' | 'arabic' | 'frequency'>('caesar');
+src/app/components/halls/CryptographyHall.tsx:29:  const [inputText, setInputText] = useState('HELLO MUSEUM');
+src/app/components/halls/CryptographyHall.tsx:30:  const [arabicInput, setArabicInput] = useState('مرحبا بالمتحف');
+src/app/components/halls/CryptographyHall.tsx:31:  const [shift, setShift] = useState(7);
+src/app/components/halls/CryptographyHall.tsx:32:  const [activeHistory, setActiveHistory] = useState<number | null>(null);
+

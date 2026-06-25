@@ -1,0 +1,9 @@
+const categories = [
+  { id: 'light', label: 'Light', arabic: 'النور والضياء', Icon: Sun, color: '#D4AF37' },
+  { id: 'water', label: 'Water', arabic: 'الماء والبحار', Icon: Droplets, color: '#4a8aba' },
+  { id: 'animals', label: 'Animals', arabic: 'الحيوانات', Icon: Bird, color: '#4a8a4a' },
+  { id: 'numbers', label: 'Sacred Numbers', arabic: 'الأرقام المقدسة', Icon: Hash, color: '#8a4a8a' },
+  { id: 'trees', label: 'Trees & Plants', arabic: 'الأشجار والنبات', Icon: TreePine, color: '#2a7a3a' },
+  { id: 'colors', label: 'Colors', arabic: 'الألوان', Icon: Palette, color: '#8a5a1a' },
+  { id: 'structures', label: 'Sacred Structures', arabic: 'المواضع المقدسة', Icon: Building2, color: '#6a3a2a' },
+];

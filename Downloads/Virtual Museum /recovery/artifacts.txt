@@ -1,0 +1,108 @@
+Created At: 2026-06-24T05:15:59Z
+Completed At: 2026-06-24T05:15:59Z
+File Path: `file:///Users/mdsunny/Downloads/Virtual%20Museum%20/src/app/components/AdminPanel.tsx`
+Total Lines: 449
+Total Bytes: 41650
+Showing lines 1 to 100
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: import { useState } from 'react';
+2: import { motion } from 'motion/react';
+3: import {
+4:   LayoutDashboard, Landmark, FileText, GraduationCap, Users, BarChart2,
+5:   Settings, LogOut, Plus, Edit, Trash2, Eye, Search, Bell, ChevronDown,
+6:   TrendingUp, TrendingDown, Globe, ScrollText, ArrowLeft, X, Save,
+7:   User, CreditCard, Newspaper
+8: } from 'lucide-react';
+9: import { useLanguage } from '../context/LanguageContext';
+10: import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+11: 
+12: const trafficData = [
+13:   { day: 'Mon', visitors: 1240, members: 89 },
+14:   { day: 'Tue', visitors: 1890, members: 134 },
+15:   { day: 'Wed', visitors: 1560, members: 102 },
+16:   { day: 'Thu', visitors: 2340, members: 187 },
+17:   { day: 'Fri', visitors: 2890, members: 221 },
+18:   { day: 'Sat', visitors: 3240, members: 265 },
+19:   { day: 'Sun', visitors: 2780, members: 198 },
+20: ];
+21: 
+22: const hallData = [
+23:   { name: 'History', visits: 4200, color: '#8B6914' },
+24:   { name: "Qur'anic", visits: 5800, color: '#1a6a4a' },
+25:   { name: 'Crypto', visits: 3900, color: '#3a3a8a' },
+26:   { name: 'Semiotics', visits: 2100, color: '#6a2a8a' },
+27:   { name: 'Semantics', visits: 2800, color: '#2a6a2a' },
+28:   { name: 'Manuscripts', visits: 4600, color: '#7a4a1a' },
+29:   { name: 'AI Lab', visits: 6200, color: '#1a4a7a' },
+30: ];
+31: 
+32: const revenueData = [
+33:   { month: 'Jan', revenue: 4200 }, { month: 'Feb', revenue: 5800 }, { month: 'Mar', revenue: 7200 },
+34:   { month: 'Apr', revenue: 6900 }, { month: 'May', revenue: 8400 }, { month: 'Jun', revenue: 11200 },
+35: ];
+36: 
+37: const memberPieData = [
+38:   { name: 'Visitor (Free)', value: 68, color: '#C7C3B9' },
+39:   { name: 'Researcher', value: 24, color: '#D4AF37' },
+40:   { name: 'Scholar', value: 6, color: '#F0D98A' },
+41:   { name: 'Institution', value: 2, color: '#8a4a4a' },
+42: ];
+43: 
+44: const artifacts = [
+45:   { id: 1, name: 'Seal of Dilmun', nameAr: 'ختم دلمون', hall: 'History', hallAr: 'التاريخ', category: 'Seal', categoryAr: 'ختم', status: 'Published', statusAr: 'منشور', views: 3420 },
+46:   { id: 2, name: 'Al-Qanun fi al-Tibb', nameAr: 'القانون في الطب', hall: 'Manuscripts', hallAr: 'المخطوطات', category: 'Medical', categoryAr: 'طبي', status: 'Published', statusAr: 'منشور', views: 8901 },
+47:   { id: 3, name: 'Divine Light — Nur', nameAr: 'النور الإلهي', hall: "Qur'anic", hallAr: 'القرآنية', category: 'Light', categoryAr: 'نور', status: 'Published', statusAr: 'منشور', views: 12034 },
+48:   { id: 4, name: 'Al-Kindi Frequency Analysis', nameAr: 'تحليل التردد للكندي', hall: 'Cryptography', hallAr: 'التشفير', category: 'Concept', categoryAr: 'مفهوم', status: 'Published', statusAr: 'منشور', views: 5670 },
+49:   { id: 5, name: 'Crescent Symbol', nameAr: 'رمز الهلال', hall: 'Semiotics', hallAr: 'السيميائية', category: 'Cultural', categoryAr: 'ثقافي', status: 'Draft', statusAr: 'مسودة', views: 0 },
+50: ];
+51: 
+52: const usersData = [
+53:   { id: 1, name: 'Ahmad Al-Rashid', nameAr: 'أحمد الراشد', email: 'ahmad@example.com', plan: 'Scholar', planAr: 'عالم', joined: 'Jan 2026', status: 'Active', statusAr: 'نشط', country: 'Saudi Arabia', countryAr: 'المملكة العربية السعودية' },
+54:   { id: 2, name: 'Fatima Hassan', nameAr: 'فاطمة حسن', email: 'fatima@example.com', plan: 'Researcher', planAr: 'باحث', joined: 'Feb 2026', status: 'Active', statusAr: 'نشط', country: 'Egypt', countryAr: 'مصر' },
+55:   { id: 3, name: 'Omar Khalil', nameAr: 'عمر خليل', email: 'omar@example.com', plan: 'Visitor', planAr: 'زائر', joined: 'Mar 2026', status: 'Active', statusAr: 'نشط', country: 'UAE', countryAr: 'الإمارات' },
+56:   { id: 4, name: 'Sara Mansouri', nameAr: 'سارة منصوري', email: 'sara@example.com', plan: 'Researcher', planAr: 'باحث', joined: 'Mar 2026', status: 'Active', statusAr: 'نشط', country: 'Morocco', countryAr: 'المغرب' },
+57:   { id: 5, name: 'Yusuf Al-Farsi', nameAr: 'يوسف الفارسي', email: 'yusuf@example.com', plan: 'Scholar', planAr: 'عالم', joined: 'Apr 2026', status: 'Suspended', statusAr: 'موقوف', country: 'Oman', countryAr: 'عمان' },
+58:   { id: 6, name: 'Leila Karimi', nameAr: 'ليلى كريمي', email: 'leila@example.com', plan: 'Institution', planAr: 'مؤسسة', joined: 'May 2026', status: 'Active', statusAr: 'نشط', country: 'Iran', countryAr: 'إيران' },
+59: ];
+60: 
+61: const navItems = [
+62:   { id: 'dashboard', label: 'Dashboard', labelAr: 'لوحة القيادة', Icon: LayoutDashboard },
+63:   { id: 'artifacts', label: 'Artifacts', labelAr: 'القطع الأثرية', Icon: Landmark },
+64:   { id: 'articles', label: 'Articles', labelAr: 'المقالات', Icon: FileText },
+65:   { id: 'courses', label: 'Courses', labelAr: 'الدورات', Icon: GraduationCap },
+66:   { id: 'users', label: 'Users', labelAr: 'المستخدمين', Icon: Users },
+67:   { id: 'analytics', label: 'Analytics', labelAr: 'التحليلات', Icon: BarChart2 },
+68:   { id: 'settings', label: 'Settings', labelAr: 'الإعدادات', Icon: Settings },
+69: ];
+70: 
+71: interface Props { onBack: () => void; }
+72: 
+73: export default function AdminPanel({ onBack }: Props) {
+74:   const { isAr } = useLanguage();
+75:   const [activeNav, setActiveNav] = useState('dashboard');
+76:   const [sidebarOpen, setSidebarOpen] = useState(true);
+77:   const [editItem, setEditItem] = useState<any>(null);
+78: 
+79:   const statCards = [
+80:     { label: 'Total Visitors', arabic: 'إجمالي الزوار', value: '48,291', delta: '+12.4%', up: true, color: '#D4AF37' },
+81:     { label: 'Active Members', arabic: 'الأعضاء النشطين', value: '3,847', delta: '+8.7%', up: true, color: '#1a6a4a' },
+82:     { label: 'Monthly Revenue', arabic: 'الإيراد الشهري', value: '$11,240', delta: '+23.1%', up: true, color: '#3a3a8a' },
+83:     { label: 'Artifacts', arabic: 'القطع الأثرية', value: '2,481', delta: isAr ? '+٥ هذا الأسبوع' : '+5 this week', up: true, color: '#6a2a8a' },
+84:   ];
+85: 
+86:   return (
+87:     <motion.div className="fixed inset-0 flex overflow-hidden"
+88:       style={{ background: '#0D1117', color: '#F8F4EA', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+89:       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+90: 
+91:       {/* Sidebar */}
+92:       <motion.div style={{ width: sidebarOpen ? 220 : 64, flexShrink: 0, background: 'rgba(6,43,36,0.95)', borderRight: isAr ? 'none' : '1px solid rgba(212,175,55,0.15)', borderLeft: isAr ? '1px solid rgba(212,175,55,0.15)' : 'none', display: 'flex', flexDirection: 'column', transition: 'width 0.3s ease', overflow: 'hidden', direction: isAr ? 'rtl' : 'ltr' }}>
+93:         {/* Logo */}
+94:         <div style={{ padding: '16px', borderBottom: '1px solid rgba(212,175,55,0.12)', display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, flexDirection: isAr ? 'row' : 'row' }}>
+95:           <div style={{ width: 32, height: 32, background: 'linear-gradient(135deg,#D4AF37,#8B6914)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>𓅃</div>
+96:           {sidebarOpen && <div style={{ fontFamily: isAr ? '"IBM Plex Sans Arabic"' : '"Playfair Display"', fontSize: '0.85rem', color: '#D4AF37', whiteSpace: 'nowrap' }}>{isAr ? 'لوحة الإدارة' : 'Admin Panel'}</div>}
+97:         </div>
+98: 
+99:         {/* Nav */}
+100:         <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto' }}>
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

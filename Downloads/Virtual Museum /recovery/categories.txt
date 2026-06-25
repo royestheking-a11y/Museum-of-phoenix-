@@ -1,0 +1,8 @@
+Created At: 2026-06-24T06:08:23Z
+Completed At: 2026-06-24T06:08:23Z
+
+				The command completed successfully.
+				Output:
+				const categories = [
+  const symbols = symbolData[activeCategory] ?? [];
+

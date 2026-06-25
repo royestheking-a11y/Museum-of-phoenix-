@@ -1,0 +1,56 @@
+Created At: 2026-06-24T06:08:39Z
+Completed At: 2026-06-24T06:08:39Z
+
+				The command completed successfully.
+				Output:
+				import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Moon, Sun, Droplets, Bird, Hash, TreePine, Palette, Building2, X, BookOpen, Star } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+
+const categories = [
+  { id: 'light', label: 'Light', arabic: 'النور والضياء', Icon: Sun, color: '#D4AF37' },
+  { id: 'water', label: 'Water', arabic: 'الماء والبحار', Icon: Droplets, color: '#4a8aba' },
+  { id: 'animals', label: 'Animals', arabic: 'الحيوانات', Icon: Bird, color: '#4a8a4a' },
+  { id: 'numbers', label: 'Sacred Numbers', arabic: 'الأرقام المقدسة', Icon: Hash, color: '#8a4a8a' },
+  { id: 'trees', label: 'Trees & Plants', arabic: 'الأشجار والنبات', Icon: TreePine, color: '#2a7a3a' },
+  { id: 'colors', label: 'Colors', arabic: 'الألوان', Icon: Palette, color: '#8a5a1a' },
+  { id: 'structures', label: 'Sacred Structures', arabic: 'المواضع المقدسة', Icon: Building2, color: '#6a3a2a' },
+];
+
+type SE = {
+  word: string; arabic: string; name: string; verse: string;
+  verseArabic: string; surah: string; meaning: string;
+  deepMeaning: string; references: string[]; scholars: string;
+};
+
+const symbolData: Record<string, SE[]> = {
+  light: [
+    {
+      word: 'NUR', arabic: 'نُور', name: 'Divine Light',
+      verse: 'Allah is the Light of the heavens and the earth. The example of His light is like a niche within which is a lamp; the lamp is within glass, the glass as if it were a brilliant star lit from a blessed olive tree.',
+      verseArabic: 'ٱللَّهُ نُورُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ ۚ مَثَلُ نُورِهِۦ كَمِشْكَوٰةٍ فِيهَا مِصْبَاحٌ ۖ ٱلْمِصْبَاحُ فِى زُجَاجَةٍ ۖ ٱلزُّجَاجَةُ كَأَنَّهَا كَوْكَبٌ دُرِّىٌّ',
+      surah: 'Surah An-Nur 24:35',
+      meaning: 'The primordial reality — divine guidance, spiritual illumination, the essence of God\'s presence in creation.',
+      deepMeaning: 'The Light Verse (Ayat al-Nur) is the most analyzed verse in Islamic philosophy. Ibn Rushd called it "the most perfect description of reality in human language." Al-Ghazali wrote an entire treatise on it (Mishkat al-Anwar). The niche, lamp, and glass represent three stages of prophetic illumination. Sufi masters interpreted Nur as the pre-eternal Muhammadan Light from which all creation emanated.',
+      references: ['Mishkat al-Anwar by Al-Ghazali', 'Tafsir Ibn Kathir', 'Fusus al-Hikam by Ibn Arabi', 'Mulla Sadra\'s commentary'],
+      scholars: 'Al-Ghazali, Ibn Arabi, Rumi, Mulla Sadra',
+    },
+    {
+      word: 'DIYA', arabic: 'ضِيَاء', name: 'Radiant Brightness',
+      verse: 'It is He who made the sun a shining light and the moon a derived light and determined for it phases — that you may know the number of years and count of time.',
+      verseArabic: 'هُوَ ٱلَّذِى جَعَلَ ٱلشَّمْسَ ضِيَآءً وَٱلْقَمَرَ نُورًا وَقَدَّرَهُۥ مَنَازِلَ لِتَعْلَمُوا۟ عَدَدَ ٱلسِّنِينَ وَٱلْحِسَابَ',
+      surah: 'Surah Yunus 10:5',
+      meaning: 'Active, outward brilliance — the sun\'s own generated light, distinguished from the moon\'s reflected light (nur).',
+      deepMeaning: 'The Quran uses two distinct words for light: diya (self-generated brilliance, like the sun) and nur (reflective, transmitted light, like the moon). This distinction — made 1,000 years before modern astrophysics confirmed the moon has no light of its own — astonished medieval scholars. It encodes a fundamental cosmological truth about the nature of illumination.',
+      references: ['Al-Tabari\'s Tafsir', 'Al-Razi\'s Mafatih al-Ghayb', 'Modern scientific tafsir literature'],
+      scholars: 'Al-Tabari, Fakhr al-Din al-Razi, Zaghloul El-Naggar',
+    },
+    {
+      word: 'NUUR AL-HUDA', arabic: 'نُورُ الهُدى', name: 'Light of Guidance',
+      verse: 'Indeed, it is We who sent down the Qur\'an and indeed, We will be its guardian. And We have already sent before you messengers to their peoples, and they came to them with clear evidences.',
+      verseArabic: 'يُرِيدُونَ أَن يُطْفِـُٔوا۟ نُورَ ٱللَّهِ بِأَفْوَٰهِهِمْ وَيَأْبَى ٱللَّهُ إِلَّآ أَن يُتِمَّ نُورَهُۥ وَلَوْ كَرِهَ ٱلْكَٰفِرُونَ',
+      surah: 'Surah At-Tawbah 9:32',
+      meaning: 'The Qur\'an itself described as divine light — inextinguishable guidance sent to illuminate human civilization.',
+      deepMeaning: 'The metaphor of enemies trying to extinguish God\'s light with their mouths — like blowing on the sun — captures the futility of suppressing divine revelation. Islamic civilization interpreted this as a command to spread the light of knowledge, leading to the great translation movement (Bayt al-Hikmah) that preserved and advanced Greek, Persian, and Indian learning.',
+

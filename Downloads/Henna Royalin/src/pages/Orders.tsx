@@ -967,7 +967,7 @@ export default function Orders() {
                 <th>Order Status</th>
                 <th>Steadfast Courier</th>
                 <th>Stock State</th>
-                <th className="text-right">Actions</th>
+                <th className="text-right whitespace-nowrap min-w-56">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1088,88 +1088,96 @@ export default function Orders() {
                         )}
                       </td>
 
-                      <td className="text-right">
-                        <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                          {/* 1. Confirm Order (Deducts Stock) */}
-                          {order.orderStatus === 'new' && (
+                      <td className="text-right py-3 px-3">
+                        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                          {/* 1. Contextual Primary Workflow Button */}
+                          {order.orderStatus === 'new' ? (
                             <button
                               onClick={() => handleConfirmOrder(order.id)}
-                              className="px-2.5 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-                              title="Confirms order and immediately deducts stock from inventory"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-linear-to-r from-emerald-700 to-emerald-800 hover:from-emerald-800 hover:to-emerald-900 shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
+                              title="Confirms order and immediately deducts raw ingredients & cone stock from inventory"
                             >
-                              Confirm & Deduct Stock
+                              <CheckCircle2 size={13} className="text-emerald-200" />
+                              <span>Confirm & Deduct</span>
                             </button>
-                          )}
-
-                          {/* 2. Send to Steadfast Courier */}
-                          {(order.orderStatus === 'confirmed' || order.orderStatus === 'new') &&
-                            !order.steadfastTrackingCode && (
-                              <button
-                                onClick={() => setDispatchOrder(order)}
-                                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[#720000] text-white hover:opacity-95 shadow-sm flex items-center gap-1"
-                                title="Send order details to Steadfast Courier"
-                              >
-                                <Truck size={12} /> Send to Steadfast
-                              </button>
-                            )}
-
-                          {/* 3. Courier Status Simulation / Update */}
-                          {order.steadfastTrackingCode && order.steadfastStatus === 'in_transit' && (
-                            <div className="flex items-center gap-1">
+                          ) : (order.orderStatus === 'confirmed' || order.orderStatus === 'ready' || order.orderStatus === 'processing') &&
+                            !order.steadfastTrackingCode ? (
+                            <button
+                              onClick={() => setDispatchOrder(order)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-linear-to-r from-[#720000] to-[#8B1A1A] hover:from-[#5a0000] hover:to-[#720000] shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer"
+                              title="Send order details to Steadfast Courier"
+                            >
+                              <Truck size={13} className="text-amber-200" />
+                              <span>Send to Steadfast</span>
+                            </button>
+                          ) : order.steadfastTrackingCode && order.steadfastStatus === 'in_transit' ? (
+                            <div className="inline-flex items-center bg-white border border-[#E8E0D4] p-0.5 rounded-xl shadow-2xs">
                               <button
                                 onClick={() => handleUpdateCourierStatus(order.id, 'delivered')}
-                                className="px-2 py-1 text-[11px] font-bold rounded bg-emerald-600 text-white hover:bg-emerald-700"
+                                className="px-2 py-1 text-[11px] font-bold rounded-lg text-emerald-800 hover:bg-emerald-50 transition cursor-pointer"
                                 title="Mark Delivered & Record COD Payment"
                               >
                                 ✓ Delivered
                               </button>
+                              <span className="w-px h-3.5 bg-[#E8E0D4]" />
                               <button
                                 onClick={() => handleUpdateCourierStatus(order.id, 'failed')}
-                                className="px-2 py-1 text-[11px] font-bold rounded bg-rose-600 text-white hover:bg-rose-700"
+                                className="px-2 py-1 text-[11px] font-bold rounded-lg text-rose-700 hover:bg-rose-50 transition cursor-pointer"
                                 title="Mark Delivery Failed"
                               >
                                 ✕ Failed
                               </button>
                             </div>
-                          )}
+                          ) : order.orderStatus === 'delivered' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200">
+                              <Check size={12} /> Delivered
+                            </span>
+                          ) : order.orderStatus === 'cancelled' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[11px] font-bold text-red-700 bg-red-50 border border-red-200">
+                              <X size={12} /> Cancelled
+                            </span>
+                          ) : null}
 
-                          {/* 4. Cancel Order & RESTOCK */}
-                          {order.orderStatus !== 'cancelled' && (
+                          {/* 2. Unified Luxury Action Icon Dock */}
+                          <div className="inline-flex items-center gap-0.5 p-1 rounded-xl bg-white border border-[#E8E0D4] shadow-2xs">
+                            {/* View Full Details */}
                             <button
-                              onClick={() => handleCancelAndRestock(order.id)}
-                              className="px-2 py-1 text-[11px] font-bold rounded border border-red-300 text-red-700 hover:bg-red-50"
-                              title="Cancel order, cancel from courier, and RESTOCK items back to inventory"
+                              onClick={() => setSelectedOrder(order)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#7A6B5D] hover:text-[#24201D] hover:bg-[#FAF8F3] transition-colors cursor-pointer"
+                              title="View Full Details"
                             >
-                              Cancel & Restock
+                              <Eye size={13} />
                             </button>
-                          )}
 
-                          {/* View / Print Invoice Trigger */}
-                          <button
-                            onClick={() => setInvoiceOrder(order)}
-                            className="p-1.5 rounded-lg border border-[#E8E0D4] text-[#720000] hover:bg-[#FAF8F3] hover:border-[#720000]/40 transition-colors"
-                            title="View & Print Invoice"
-                          >
-                            <FileText size={14} />
-                          </button>
+                            {/* View & Print Invoice */}
+                            <button
+                              onClick={() => setInvoiceOrder(order)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#720000] hover:text-[#5a0000] hover:bg-red-50/60 transition-colors cursor-pointer"
+                              title="View & Print Invoice"
+                            >
+                              <FileText size={13} />
+                            </button>
 
-                          {/* View Detail Modal Trigger */}
-                          <button
-                            onClick={() => setSelectedOrder(order)}
-                            className="p-1.5 rounded-lg border border-[#E8E0D4] text-[#7A6B5D] hover:bg-gray-100 transition-colors"
-                            title="View Full Details"
-                          >
-                            <Eye size={14} />
-                          </button>
+                            {/* Cancel & Restock (if order is active) */}
+                            {order.orderStatus !== 'cancelled' && order.orderStatus !== 'delivered' && (
+                              <button
+                                onClick={() => handleCancelAndRestock(order.id)}
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-amber-700 hover:text-amber-900 hover:bg-amber-50 transition-colors cursor-pointer"
+                                title="Cancel Order & Restock Items to Inventory"
+                              >
+                                <RotateCcw size={13} />
+                              </button>
+                            )}
 
-                          {/* Delete Order Trigger */}
-                          <button
-                            onClick={() => handleDeleteOrder(order.id, order.orderId)}
-                            className="p-1.5 rounded-lg border border-transparent hover:border-red-200 text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
-                            title="Delete Order Permanently"
-                          >
-                            <Trash2 size={14} />
-                          </button>
+                            {/* Delete Order Permanently */}
+                            <button
+                              onClick={() => handleDeleteOrder(order.id, order.orderId)}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                              title="Delete Order Permanently"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     </tr>

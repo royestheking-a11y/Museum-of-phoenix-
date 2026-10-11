@@ -108,10 +108,13 @@ async function steadfastFetch<T>(endpoint: string, options: RequestInit = {}): P
     ...(options.headers as Record<string, string> || {}),
   };
 
-  // Try Vite dev server proxy first to prevent browser CORS blocks, with direct API fallback
+  // 1. Direct official REST API endpoint (CORS-enabled by Steadfast with access-control-allow-origin: *)
+  // 2. Legacy official endpoint
+  // 3. Local proxy only as last resort
   const urlsToTry = [
-    `${STEADFAST_CONFIG.proxyUrl}${endpoint}`,
     `${STEADFAST_CONFIG.baseUrl}${endpoint}`,
+    `${STEADFAST_CONFIG.legacyUrl}${endpoint}`,
+    `${STEADFAST_CONFIG.proxyUrl}${endpoint}`,
   ];
 
   let lastError: Error | null = null;
@@ -124,17 +127,39 @@ async function steadfastFetch<T>(endpoint: string, options: RequestInit = {}): P
       });
 
       const text = await res.text();
+      const trimmed = text.trim();
+
+      // Check if response is an HTML document (e.g. SPA index.html fallback from Firebase / Vite)
+      if (
+        trimmed.startsWith('<!doctype') ||
+        trimmed.startsWith('<!DOCTYPE') ||
+        trimmed.startsWith('<html') ||
+        trimmed.startsWith('<head') ||
+        trimmed.includes('<title>') ||
+        trimmed.includes('<div id="root">')
+      ) {
+        lastError = new Error(`Steadfast API endpoint returned HTML fallback instead of JSON response.`);
+        continue;
+      }
+
       let data: any;
       try {
         data = JSON.parse(text);
       } catch {
-        data = { message: text, status: res.status };
+        lastError = new Error(`Invalid JSON response from Steadfast API.`);
+        continue;
       }
 
-      if (res.ok) {
+      if (res.ok && data) {
+        // If business error response from Steadfast
+        if (data.status && data.status >= 400) {
+          const errorMsg = data?.message || (data?.errors ? Object.entries(data.errors).map(([k, v]: [string, any]) => `${k.replace('_', ' ')}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ') : `Steadfast error status ${data.status}`);
+          lastError = new Error(errorMsg);
+          return data as T;
+        }
         return data as T;
       } else {
-        const errorMsg = data?.message || (data?.errors ? Object.values(data.errors).flat().join(', ') : `HTTP ${res.status}`);
+        const errorMsg = data?.message || (data?.errors ? Object.entries(data.errors).map(([k, v]: [string, any]) => `${k.replace('_', ' ')}: ${Array.isArray(v) ? v.join(', ') : v}`).join(' | ') : `HTTP ${res.status}`);
         lastError = new Error(errorMsg);
       }
     } catch (err: any) {
@@ -142,7 +167,7 @@ async function steadfastFetch<T>(endpoint: string, options: RequestInit = {}): P
     }
   }
 
-  throw lastError || new Error('Could not connect to Steadfast Courier API.');
+  throw lastError || new Error('Could not connect to Steadfast Courier API. Please verify network or API keys.');
 }
 
 /**
@@ -199,12 +224,24 @@ export async function dispatchOrderToSteadfastAPI(
   const invoiceId = order.orderId || `HR-ORD-${cleanId}`;
   const validPhone = normalizeBdPhone(order.customerPhone);
 
+  // Ensure address is at least 10 characters for courier delivery validation
+  let address = (order.deliveryAddress || '').trim();
+  if (!address || address.length < 5) {
+    address = `${address ? address + ', ' : ''}${order.city || 'Dhaka'}, Bangladesh`;
+  } else if (address.length < 10) {
+    address = `${address}, ${order.city || 'Dhaka'}`;
+  }
+
+  // Calculate COD amount: collect total if not already paid
+  const isPaid = order.paymentStatus === 'paid';
+  const codAmount = isPaid ? 0 : Math.round(order.total || 0);
+
   const payload: SteadfastCreateOrderPayload = {
     invoice: invoiceId,
-    recipient_name: order.customerName || 'Customer',
+    recipient_name: (order.customerName || 'Customer').trim(),
     recipient_phone: validPhone,
-    recipient_address: order.deliveryAddress || order.city || 'Dhaka, Bangladesh',
-    cod_amount: Math.round(order.paymentMethod === 'COD' || order.paymentMethod === 'Steadfast COD' ? order.total : 0),
+    recipient_address: address,
+    cod_amount: codAmount,
     note: customNote || (order.items || []).map(i => `${i.productName} (${i.quantity})`).join(', ') || 'Henna Royalin Cones',
   };
 
@@ -216,20 +253,24 @@ export async function dispatchOrderToSteadfastAPI(
       body: JSON.stringify(payload),
     });
 
-    if (response && response.status === 200 && response.consignment) {
+    if (response && (response.status === 200 || response.status === 201) && response.consignment) {
       consignment = response.consignment;
-    } else if (response && response.status === 400 && response.errors) {
-      const issueList = Object.entries(response.errors)
-        .map(([k, errs]) => `${k.replace('_', ' ')}: ${errs.join(', ')}`)
-        .join(' | ');
+    } else if (response && (response.status === 400 || (response as any).errors)) {
+      const issueList = response.errors
+        ? Object.entries(response.errors)
+            .map(([k, errs]) => `${k.replace('_', ' ')}: ${Array.isArray(errs) ? errs.join(', ') : errs}`)
+            .join(' | ')
+        : response.message || 'Validation error';
       return {
         success: false,
         message: `Steadfast rejected order: ${issueList}`,
       };
-    } else if (response && response.message) {
+    } else if (response && response.message && !response.consignment) {
+      // Clean up message to prevent any raw HTML leakage
+      const cleanMsg = response.message.replace(/<[^>]*>?/gm, '').trim();
       return {
         success: false,
-        message: response.message,
+        message: cleanMsg.slice(0, 200) || 'Steadfast dispatch failed.',
       };
     }
 
@@ -255,9 +296,11 @@ export async function dispatchOrderToSteadfastAPI(
       order: updated || order,
     };
   } catch (err: any) {
+    const rawMsg = err?.message || 'Failed to dispatch order to Steadfast API.';
+    const cleanMsg = rawMsg.replace(/<[^>]*>?/gm, '').trim();
     return {
       success: false,
-      message: err?.message || 'Failed to dispatch order to Steadfast API.',
+      message: cleanMsg.slice(0, 200) || 'Connection to Steadfast API failed. Please try again.',
     };
   }
 }

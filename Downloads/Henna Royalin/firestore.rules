@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// ===============================================================
+// Henna Royalin Studio — Firestore Security Rules
+// Secured with Firebase Authentication
+// ===============================================================
+//
+// All reads and writes require the user to be signed in via
+// Firebase Authentication (Email/Password).
+// Unauthenticated requests are denied automatically.
+//
+// Collections:
+//   orders, products, customers, inventory, productionBatches,
+//   bookings, services, payments, expenses, employees,
+//   salaryPayments, staff, notifications, settings
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Only signed-in users can access any business collection
+    match /{collectionName}/{docId} {
+      allow read, write: if
+        request.auth != null &&
+        collectionName in [
+          'orders',
+          'products',
+          'customers',
+          'inventory',
+          'productionBatches',
+          'bookings',
+          'services',
+          'payments',
+          'expenses',
+          'employees',
+          'salaryPayments',
+          'staff',
+          'teamMembers',
+          'notifications',
+          'coneRecipes',
+          'rawMaterialLogs',
+          'settings'
+        ];
+    }
+
+    // Deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

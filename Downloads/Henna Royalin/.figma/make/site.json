@@ -1,0 +1,10 @@
+{
+  "description": "Delivers a comprehensive, premium design system with advanced UI/UX, rich iconography, and local database support for seamless software development.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

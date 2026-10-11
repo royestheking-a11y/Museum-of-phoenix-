@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Package, Plus, Search, X, AlertTriangle, Edit2, ToggleLeft, ToggleRight,
-  Clock, LayoutGrid, Table, ArrowRight, Sparkles, CheckCircle2, Tag
+  Clock, LayoutGrid, Table, ArrowRight, Sparkles, CheckCircle2, Tag, Trash2
 } from 'lucide-react';
 import { db, Product } from '../lib/db';
 import { useModal } from '../context/ModalContext';
@@ -9,10 +9,11 @@ import { useModal } from '../context/ModalContext';
 interface ProductFormProps {
   onClose: () => void;
   onSave: () => void;
+  onDelete?: () => void;
   existing?: Product;
 }
 
-function ProductForm({ onClose, onSave, existing }: ProductFormProps) {
+function ProductForm({ onClose, onSave, onDelete, existing }: ProductFormProps) {
   const { showAlert } = useModal();
   const [form, setForm] = useState({
     name: existing?.name || '',
@@ -149,21 +150,32 @@ function ProductForm({ onClose, onSave, existing }: ProductFormProps) {
         <span className="text-[#7A6B5D]">Projected Profit Margin:</span>
         <span className="font-bold text-[#166534] bg-emerald-100 px-2 py-0.5 rounded-full">{margin}%</span>
       </div>
-      <div className="flex justify-end gap-2 pt-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="px-4 py-2 text-xs font-semibold rounded-xl border border-[#E8E0D4] hover:bg-gray-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          className="px-4 py-2 text-xs font-bold rounded-xl text-white bg-[#720000] hover:bg-[#5a0000]"
-        >
-          {existing ? 'Save Changes' : 'Create Product'}
-        </button>
+      <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#E8E0D4]/60">
+        {existing && onDelete ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="px-3.5 py-2 text-xs font-bold rounded-xl text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition flex items-center gap-1.5 cursor-pointer"
+          >
+            <Trash2 size={13} /> Delete Product
+          </button>
+        ) : <div />}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold rounded-xl border border-[#E8E0D4] hover:bg-gray-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="px-4 py-2 text-xs font-bold rounded-xl text-white bg-[#720000] hover:bg-[#5a0000] cursor-pointer"
+          >
+            {existing ? 'Save Changes' : 'Create Product'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -174,12 +186,32 @@ interface ProductsProps {
 }
 
 export default function Products({ onNavigate }: ProductsProps) {
+  const { showAlert, showConfirm } = useModal();
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [catFilter, setCatFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+
+  const handleDeleteProduct = async (product: Product) => {
+    const confirmed = await showConfirm({
+      title: `Delete "${product.name}"?`,
+      message: `Are you sure you want to permanently delete this product (SKU: ${product.sku}) from your stock catalog? This action cannot be undone.`,
+      confirmText: 'Yes, Delete',
+      cancelText: 'Cancel',
+      type: 'warning'
+    });
+    if (!confirmed) return;
+
+    db.deleteProduct(product.id);
+    refresh();
+    showAlert({
+      type: 'success',
+      title: 'Product Deleted',
+      message: `"${product.name}" (${product.sku}) has been permanently deleted from stock catalog.`
+    });
+  };
 
   useEffect(() => {
     setProducts(db.getProducts());
@@ -432,9 +464,16 @@ export default function Products({ onNavigate }: ProductsProps) {
                   <div className="mt-3 pt-2 flex items-center justify-between gap-2">
                     <button
                       onClick={() => setEditing(p)}
-                      className="w-full text-xs font-bold py-1.5 rounded-xl text-[#720000] bg-red-50 hover:bg-red-100 transition flex items-center justify-center gap-1.5"
+                      className="flex-1 text-xs font-bold py-1.5 rounded-xl text-[#720000] bg-red-50 hover:bg-red-100 transition flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Edit2 size={12} /> Edit Details
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProduct(p)}
+                      className="p-1.5 rounded-xl text-red-500 hover:text-red-700 hover:bg-red-50 border border-transparent hover:border-red-200 transition flex items-center justify-center cursor-pointer"
+                      title="Delete Product from Catalog"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
@@ -522,12 +561,21 @@ export default function Products({ onNavigate }: ProductsProps) {
                         </button>
                       </td>
                       <td className="py-3 px-4 text-right" onClick={e => e.stopPropagation()}>
-                        <button
-                          onClick={() => setEditing(p)}
-                          className="text-xs font-bold px-3 py-1 rounded-lg text-[#720000] bg-red-50 border border-[#E8E0D4] hover:bg-red-100 transition inline-flex items-center gap-1"
-                        >
-                          <Edit2 size={11} /> Edit
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => setEditing(p)}
+                            className="text-xs font-bold px-2.5 py-1 rounded-lg text-[#720000] bg-red-50 border border-[#E8E0D4] hover:bg-red-100 transition inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <Edit2 size={11} /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteProduct(p)}
+                            className="text-xs font-bold p-1 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 border border-transparent hover:border-red-200 transition inline-flex items-center cursor-pointer"
+                            title="Delete Product"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -571,6 +619,13 @@ export default function Products({ onNavigate }: ProductsProps) {
                   setShowNew(false);
                   setEditing(null);
                   refresh();
+                }}
+                onDelete={() => {
+                  if (editing) {
+                    const prod = editing;
+                    setEditing(null);
+                    handleDeleteProduct(prod);
+                  }
                 }}
               />
             </div>

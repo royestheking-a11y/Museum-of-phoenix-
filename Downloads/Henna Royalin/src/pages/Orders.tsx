@@ -3,7 +3,7 @@ import {
   ShoppingBag, Plus, Search, Eye, Check, X, Clock, Package,
   Truck, CheckCircle2, RotateCcw, AlertTriangle, AlertCircle,
   Copy, ExternalLink, Send, MapPin, Phone, ShieldAlert, ArrowRight,
-  Sparkles, FileText, Printer
+  Sparkles, FileText, Printer, Trash2
 } from 'lucide-react';
 import { db, Order, Product, Customer, formatDateTime } from '../lib/db';
 import AIOrderModal from '../components/ui/AIOrderModal';
@@ -808,6 +808,33 @@ export default function Orders() {
     refresh();
   };
 
+  const handleDeleteOrder = async (orderId: string, orderNumber: string) => {
+    const existingOrder = orders.find(o => o.id === orderId);
+    const trackingCode = existingOrder?.steadfastTrackingCode;
+
+    const confirmed = await showConfirm({
+      title: `Delete Order #${orderNumber}?`,
+      message: trackingCode
+        ? `⚠️ Caution: Order #${orderNumber} has a courier tracking code (${trackingCode}). Permanently deleting this order will remove all order records from Henna Royalin database. Are you sure you want to proceed?`
+        : `Are you sure you want to permanently delete Order #${orderNumber}? This will remove all records for this order and cannot be undone.`,
+      confirmText: 'Yes, Delete Permanently',
+      cancelText: 'Cancel',
+      type: 'warning'
+    });
+    if (!confirmed) return;
+
+    db.deleteOrder(orderId);
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder(null);
+    }
+    refresh();
+    showAlert({
+      type: 'success',
+      title: 'Order Deleted',
+      message: `Order #${orderNumber} has been permanently deleted.`
+    });
+  };
+
   // Filter orders
   const filtered = orders.filter((o) => {
     const q = search.toLowerCase();
@@ -1129,10 +1156,19 @@ export default function Orders() {
                           {/* View Detail Modal Trigger */}
                           <button
                             onClick={() => setSelectedOrder(order)}
-                            className="p-1.5 rounded-lg border border-[#E8E0D4] text-[#7A6B5D] hover:bg-gray-100"
+                            className="p-1.5 rounded-lg border border-[#E8E0D4] text-[#7A6B5D] hover:bg-gray-100 transition-colors"
                             title="View Full Details"
                           >
                             <Eye size={14} />
+                          </button>
+
+                          {/* Delete Order Trigger */}
+                          <button
+                            onClick={() => handleDeleteOrder(order.id, order.orderId)}
+                            className="p-1.5 rounded-lg border border-transparent hover:border-red-200 text-red-500 hover:text-red-700 hover:bg-red-50 transition-colors cursor-pointer"
+                            title="Delete Order Permanently"
+                          >
+                            <Trash2 size={14} />
                           </button>
                         </div>
                       </td>
@@ -1310,6 +1346,20 @@ export default function Orders() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const id = selectedOrder.id;
+                    const oNum = selectedOrder.orderId;
+                    handleDeleteOrder(id, oNum);
+                  }}
+                  className="px-3.5 py-2 text-xs font-bold rounded-xl border border-red-200 text-red-600 hover:bg-red-50 hover:text-red-800 transition flex items-center gap-1.5 cursor-pointer"
+                  title="Delete Order Permanently"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete Order</span>
+                </button>
+
                 {selectedOrder.orderStatus !== 'cancelled' && (
                   <button
                     onClick={() => {

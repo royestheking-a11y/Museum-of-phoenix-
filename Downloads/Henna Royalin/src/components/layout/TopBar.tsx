@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, HelpCircle, Search, ChevronRight, X, Menu, Sparkles, ShoppingBag, Store, Laptop, Cloud } from "lucide-react";
+import { Bell, HelpCircle, Search, ChevronRight, X, Menu, Sparkles, ShoppingBag, Store, Laptop, Cloud, Clock, CheckCheck, Package, Truck, AlertTriangle } from "lucide-react";
 import { db } from "../../lib/db";
 import HelpModal from "../ui/HelpModal";
 
@@ -119,9 +119,22 @@ export default function TopBar({ currentPage, onNavigate, onMobileMenuToggle, on
   const unreadNotificationsCount = notificationsList.filter((n: any) => !n.read).length;
 
   useEffect(() => {
-    return db.subscribe(() => {
+    // Purge any stale mock notifications on mount and refresh list
+    db.purgeMockNotifications();
+    setNotificationsList(db.getNotifications());
+
+    const unsub = db.subscribe(() => {
       setNotificationsList(db.getNotifications());
     });
+
+    const timer = setInterval(() => {
+      setNotificationsList(db.getNotifications());
+    }, 30000);
+
+    return () => {
+      unsub();
+      clearInterval(timer);
+    };
   }, []);
 
   useEffect(() => {
@@ -464,7 +477,12 @@ export default function TopBar({ currentPage, onNavigate, onMobileMenuToggle, on
         <div ref={notifRef} style={{ position: "relative" }}>
           <button
             onClick={() => {
-              setShowNotifications((v) => !v);
+              setShowNotifications((v) => {
+                if (!v) {
+                  setNotificationsList(db.getNotifications());
+                }
+                return !v;
+              });
               setShowUserMenu(false);
             }}
             style={{
@@ -490,6 +508,7 @@ export default function TopBar({ currentPage, onNavigate, onMobileMenuToggle, on
                 (e.currentTarget as HTMLButtonElement).style.backgroundColor =
                   "transparent";
             }}
+            title="Notifications"
           >
             <Bell size={18} color="#6B5E52" />
             {unreadNotificationsCount > 0 && (
@@ -524,12 +543,12 @@ export default function TopBar({ currentPage, onNavigate, onMobileMenuToggle, on
                 position: "absolute",
                 top: "calc(100% + 8px)",
                 right: 0,
-                width: 300,
+                width: "min(360px, calc(100vw - 24px))",
                 backgroundColor: "#FFFFFF",
                 border: "1.5px solid #E8E0D4",
-                borderRadius: 12,
+                borderRadius: 14,
                 boxShadow:
-                  "0 8px 24px rgba(114,0,0,0.08), 0 2px 8px rgba(0,0,0,0.06)",
+                  "0 12px 32px rgba(114,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
                 zIndex: 50,
                 overflow: "hidden",
               }}
@@ -541,25 +560,47 @@ export default function TopBar({ currentPage, onNavigate, onMobileMenuToggle, on
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
+                  backgroundColor: "#FAF8F3",
                 }}
               >
-                <span
-                  style={{
-                    fontFamily: "'Playfair Display', serif",
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: "#24201D",
-                  }}
-                >
-                  Notifications
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    style={{
+                      fontFamily: "'Playfair Display', serif",
+                      fontSize: 14.5,
+                      fontWeight: 700,
+                      color: "#24201D",
+                    }}
+                  >
+                    Notifications
+                  </span>
+                  {unreadNotificationsCount > 0 && (
+                    <span
+                      style={{
+                        backgroundColor: "#720000",
+                        color: "#FFFFFF",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: "1px 6px",
+                        borderRadius: 10,
+                        fontFamily: "'Manrope', sans-serif",
+                      }}
+                    >
+                      {unreadNotificationsCount} new
+                    </span>
+                  )}
+                </div>
                 {notificationsList.length > 0 && (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span
+                    <button
+                      type="button"
                       onClick={() => {
                         db.markAllNotificationsRead();
                       }}
                       style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
                         fontFamily: "'Manrope', sans-serif",
                         fontSize: 11,
                         color: "#720000",
@@ -568,13 +609,17 @@ export default function TopBar({ currentPage, onNavigate, onMobileMenuToggle, on
                       }}
                     >
                       Mark all read
-                    </span>
+                    </button>
                     <span style={{ color: "#E8E0D4" }}>·</span>
-                    <span
+                    <button
+                      type="button"
                       onClick={() => {
                         db.clearAllNotifications();
                       }}
                       style={{
+                        background: "none",
+                        border: "none",
+                        padding: 0,
                         fontFamily: "'Manrope', sans-serif",
                         fontSize: 11,
                         color: "#DC2626",
@@ -583,151 +628,252 @@ export default function TopBar({ currentPage, onNavigate, onMobileMenuToggle, on
                       }}
                     >
                       Clear all
-                    </span>
+                    </button>
                   </div>
                 )}
               </div>
-              {notificationsList.length === 0 ? (
-                <div
-                  style={{
-                    padding: "32px 16px",
-                    textAlign: "center",
-                  }}
-                >
+
+              <div style={{ maxHeight: 380, overflowY: "auto" }}>
+                {notificationsList.length === 0 ? (
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: "50%",
-                      background: "#FAF8F3",
-                      border: "1px solid #E8E0D4",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      margin: "0 auto 8px auto",
-                      color: "#A3907C",
+                      padding: "36px 20px",
+                      textAlign: "center",
                     }}
                   >
-                    <Bell size={18} />
-                  </div>
-                  <p
-                    style={{
-                      fontFamily: "'Manrope', sans-serif",
-                      fontSize: 13,
-                      fontWeight: 700,
-                      color: "#24201D",
-                    }}
-                  >
-                    No notifications
-                  </p>
-                  <p
-                    style={{
-                      fontFamily: "'Manrope', sans-serif",
-                      fontSize: 11,
-                      color: "#7A6B5D",
-                      marginTop: 2,
-                    }}
-                  >
-                    All caught up! Real alerts will show when orders or stock change.
-                  </p>
-                </div>
-              ) : (
-                notificationsList.map((n: any, i: number) => (
-                  <div
-                    key={n.id || i}
-                    style={{
-                      padding: "10px 16px",
-                      borderBottom:
-                        i < notificationsList.length - 1
-                          ? "1px solid #F0EBE4"
-                          : "none",
-                      backgroundColor: !n.read ? "#FFF9F0" : "transparent",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "flex-start",
-                      justifyContent: "space-between",
-                      gap: 10,
-                    }}
-                    onMouseEnter={(e) =>
-                      ((e.currentTarget as HTMLDivElement).style.backgroundColor =
-                        "#FAF8F3")
-                    }
-                    onMouseLeave={(e) =>
-                      ((e.currentTarget as HTMLDivElement).style.backgroundColor =
-                        !n.read ? "#FFF9F0" : "transparent")
-                    }
-                  >
-                    <div style={{ display: "flex", gap: 10, flex: 1, minWidth: 0 }}>
-                      {!n.read && (
-                        <div
-                          style={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: "50%",
-                            backgroundColor: "#720000",
-                            marginTop: 5,
-                            flexShrink: 0,
-                          }}
-                        />
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div
-                          style={{
-                            fontFamily: "'Manrope', sans-serif",
-                            fontSize: 12.5,
-                            fontWeight: 600,
-                            color: "#24201D",
-                          }}
-                        >
-                          {n.title}
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: "'Manrope', sans-serif",
-                            fontSize: 11.5,
-                            color: "#6B5E52",
-                            marginTop: 2,
-                          }}
-                        >
-                          {n.description || n.sub}
-                        </div>
-                        <div
-                          style={{
-                            fontFamily: "'Manrope', sans-serif",
-                            fontSize: 10.5,
-                            color: "#9C8E84",
-                            marginTop: 2,
-                          }}
-                        >
-                          {n.time || "Recently"}
-                        </div>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        db.deleteNotification(n.id);
-                      }}
+                    <div
                       style={{
-                        background: "transparent",
-                        border: "none",
-                        padding: 3,
-                        cursor: "pointer",
-                        color: "#A3907C",
-                        borderRadius: 4,
+                        width: 42,
+                        height: 42,
+                        borderRadius: "50%",
+                        background: "#FAF8F3",
+                        border: "1px solid #E8E0D4",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        flexShrink: 0,
+                        margin: "0 auto 10px auto",
+                        color: "#A3907C",
                       }}
-                      title="Dismiss notification"
                     >
-                      <X size={13} />
-                    </button>
+                      <Bell size={20} />
+                    </div>
+                    <p
+                      style={{
+                        fontFamily: "'Playfair Display', serif",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: "#24201D",
+                      }}
+                    >
+                      No Notifications
+                    </p>
+                    <p
+                      style={{
+                        fontFamily: "'Manrope', sans-serif",
+                        fontSize: 11.5,
+                        color: "#7A6B5D",
+                        marginTop: 4,
+                        lineHeight: 1.4,
+                      }}
+                    >
+                      All caught up! Real alerts will appear here when orders, batches, or courier status update.
+                    </p>
                   </div>
-                ))
-              )}
+                ) : (
+                  notificationsList.map((n: any, i: number) => {
+                    const isUnread = !n.read;
+                    const cat = (n.category || "").toLowerCase();
+                    const titleLower = (n.title || "").toLowerCase();
+                    const isOrder = cat === "order" || titleLower.includes("order");
+                    const isDelivery = cat === "delivery" || titleLower.includes("steadfast") || titleLower.includes("courier");
+                    const isBatch = titleLower.includes("batch") || cat === "production";
+                    const isStockAlert = titleLower.includes("low stock") || titleLower.includes("stock dropped");
+
+                    let icon = <Bell size={13} color="#720000" />;
+                    let iconBg = "#FDF2F2";
+                    let catLabel = n.category || "Alert";
+
+                    if (isStockAlert) {
+                      icon = <AlertTriangle size={13} color="#D97706" />;
+                      iconBg = "#FEF3C7";
+                      catLabel = "Stock Alert";
+                    } else if (isDelivery) {
+                      icon = <Truck size={13} color="#2563EB" />;
+                      iconBg = "#EFF6FF";
+                      catLabel = "Courier";
+                    } else if (isOrder) {
+                      icon = <ShoppingBag size={13} color="#720000" />;
+                      iconBg = "#FDF2F2";
+                      catLabel = "Order";
+                    } else if (isBatch) {
+                      icon = <Package size={13} color="#16A34A" />;
+                      iconBg = "#F0FDF4";
+                      catLabel = "Batch";
+                    }
+
+                    return (
+                      <div
+                        key={n.id || i}
+                        onClick={() => {
+                          if (n.id) db.markNotificationRead(n.id);
+                          setShowNotifications(false);
+                          if (isOrder) onNavigate("orders");
+                          else if (isDelivery) onNavigate("steadfast");
+                          else if (isBatch) onNavigate("production");
+                          else if (isStockAlert || cat === "inventory") onNavigate("stock");
+                          else if (cat === "payment") onNavigate("payments");
+                        }}
+                        style={{
+                          padding: "12px 16px",
+                          borderBottom:
+                            i < notificationsList.length - 1
+                              ? "1px solid #F0EBE4"
+                              : "none",
+                          backgroundColor: isUnread ? "#FFFDF9" : "#FFFFFF",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          justifyContent: "space-between",
+                          gap: 12,
+                          transition: "background-color 0.15s ease",
+                        }}
+                        onMouseEnter={(e) =>
+                          ((e.currentTarget as HTMLDivElement).style.backgroundColor =
+                            "#FAF8F3")
+                        }
+                        onMouseLeave={(e) =>
+                          ((e.currentTarget as HTMLDivElement).style.backgroundColor =
+                            isUnread ? "#FFFDF9" : "#FFFFFF")
+                        }
+                      >
+                        <div style={{ display: "flex", gap: 10, flex: 1, minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: "50%",
+                              backgroundColor: iconBg,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              flexShrink: 0,
+                              marginTop: 1,
+                            }}
+                          >
+                            {icon}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                marginBottom: 2,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  fontSize: 9.5,
+                                  fontWeight: 700,
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.04em",
+                                  padding: "1px 5px",
+                                  borderRadius: 4,
+                                  backgroundColor: "#FAF8F3",
+                                  border: "1px solid #E8E0D4",
+                                  color: "#7A6B5D",
+                                }}
+                              >
+                                {catLabel}
+                              </span>
+                              {isUnread && (
+                                <span
+                                  style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: "50%",
+                                    backgroundColor: "#720000",
+                                    display: "inline-block",
+                                  }}
+                                />
+                              )}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: "'Manrope', sans-serif",
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                color: "#24201D",
+                                lineHeight: 1.3,
+                              }}
+                            >
+                              {n.title}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: "'Manrope', sans-serif",
+                                fontSize: 11.5,
+                                color: "#6B5E52",
+                                marginTop: 3,
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              {n.description || n.sub}
+                            </div>
+                            <div
+                              style={{
+                                fontFamily: "'Manrope', sans-serif",
+                                fontSize: 10.5,
+                                color: "#9C8E84",
+                                marginTop: 4,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontWeight: 500,
+                              }}
+                            >
+                              <Clock size={10} color="#A3907C" />
+                              <span>{n.time || "Just now"}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (n.id) db.deleteNotification(n.id);
+                          }}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            padding: 4,
+                            cursor: "pointer",
+                            color: "#A3907C",
+                            borderRadius: 6,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            flexShrink: 0,
+                            marginTop: -2,
+                          }}
+                          title="Dismiss notification"
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#F0EBE4";
+                            (e.currentTarget as HTMLButtonElement).style.color = "#720000";
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent";
+                            (e.currentTarget as HTMLButtonElement).style.color = "#A3907C";
+                          }}
+                        >
+                          <X size={13} />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
               <div
                 onClick={() => setShowNotifications(false)}
                 style={{
@@ -739,14 +885,15 @@ export default function TopBar({ currentPage, onNavigate, onMobileMenuToggle, on
                   fontWeight: 600,
                   cursor: "pointer",
                   borderTop: "1px solid #E8E0D4",
+                  backgroundColor: "#FAF8F3",
                 }}
                 onMouseEnter={(e) =>
                   ((e.currentTarget as HTMLDivElement).style.backgroundColor =
-                    "#FAF8F3")
+                    "#F5EFEB")
                 }
                 onMouseLeave={(e) =>
                   ((e.currentTarget as HTMLDivElement).style.backgroundColor =
-                    "transparent")
+                    "#FAF8F3")
                 }
               >
                 Close

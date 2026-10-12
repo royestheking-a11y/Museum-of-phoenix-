@@ -598,6 +598,120 @@ if (typeof localStorage !== 'undefined') {
   }
 }
 
+// Check if a notification is from previous mock/test runs or fake demos
+export function isLegacyMockNotification(n: any): boolean {
+  if (!n) return true;
+  const title = String(n.title || '').toLowerCase();
+  const desc = String(n.description || n.sub || '').toLowerCase();
+  const combined = `${title} ${desc}`;
+
+  // Filter explicit test/demo keywords
+  if (
+    combined.includes('demo') ||
+    combined.includes('sample') ||
+    combined.includes('test order') ||
+    combined.includes('fake') ||
+    combined.includes('mock')
+  ) {
+    return true;
+  }
+
+  // Filter out legacy test batch & test order records from early development (21 Sept & 03 Oct)
+  if (
+    combined.includes('21 sept 2026') ||
+    combined.includes('21 sep 2026') ||
+    combined.includes('03 oct 2026') ||
+    combined.includes('3 oct 2026') ||
+    combined.includes('hr-10251')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+// Dynamically compute human-readable relative time (e.g., Just now, 5m ago, 2h ago, Yesterday, 03 Oct 2026)
+export function formatNotificationTime(n: { createdAt?: string; time?: string; description?: string }): string {
+  let targetDate: Date | null = null;
+
+  // 1. Try parsing from description if it contains an explicit historical date like "on 03 Oct 2026, 09:41 PM"
+  if (n.description) {
+    const match = n.description.match(/(?:on\s+)?(\d{1,2}\s+[A-Za-z]+\s+\d{4}(?:,\s+\d{1,2}:\d{2}\s+[APMapm]{2})?)/);
+    if (match && match[1]) {
+      const parsedDesc = new Date(match[1]);
+      if (!isNaN(parsedDesc.getTime())) {
+        targetDate = parsedDesc;
+      }
+    }
+  }
+
+  // 2. If not found in description, inspect createdAt
+  if (!targetDate && n.createdAt) {
+    const d = new Date(n.createdAt);
+    if (!isNaN(d.getTime())) {
+      targetDate = d;
+    }
+  }
+
+  // 3. Fallback
+  if (!targetDate) {
+    if (n.time && n.time !== 'Just now') return n.time;
+    return 'Recently';
+  }
+
+  const now = Date.now();
+  const diffMs = now - targetDate.getTime();
+
+  // If created within the last 45 seconds or in slight future due to clock skew
+  if (diffMs < 45 * 1000) {
+    return 'Just now';
+  }
+
+  const diffMins = Math.floor(diffMs / (60 * 1000));
+  if (diffMins < 60) {
+    return `${diffMins}m ago`;
+  }
+
+  const diffHours = Math.floor(diffMs / (3600 * 1000));
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+
+  const diffDays = Math.floor(diffMs / (24 * 3600 * 1000));
+  if (diffDays === 1) {
+    return 'Yesterday';
+  }
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+
+  return targetDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+// Auto-migration: Purge all stale/mock notifications and reset to a clean state
+const NOTIFS_PURGE_VERSION = 'v8_clear_all_notifications_and_reset';
+if (typeof localStorage !== 'undefined') {
+  try {
+    if (localStorage.getItem('hr_notif_purge_version') !== NOTIFS_PURGE_VERSION) {
+      const raw = localStorage.getItem('hr_notifications');
+      if (raw) {
+        try {
+          const list = JSON.parse(raw);
+          list.forEach((n: any) => {
+            if (n && n.id) {
+              deleteDocFromCloud('notifications', n.id);
+            }
+          });
+        } catch {}
+      }
+      localStorage.setItem('hr_notifications', JSON.stringify([]));
+      localStorage.setItem('hr_notif_purge_version', NOTIFS_PURGE_VERSION);
+    }
+  } catch (err) {
+    console.warn('Storage notification purge error:', err);
+  }
+}
+
 const listeners: Set<() => void> = new Set();
 
 export function notifyListeners(): void {
@@ -653,11 +767,13 @@ if (typeof window !== 'undefined') {
       } else {
         const list = getDB<any>(action.colName);
         if (action.type === 'upsert') {
-          // Filter out any legacy fake/demo notification records from cloud sync
+          // Filter out and actively purge any legacy fake/demo notification records from cloud sync
           if (action.colName === 'notifications') {
-            const title = (action.item.title || '').toLowerCase();
-            const desc = (action.item.description || '').toLowerCase();
-            if (title.includes('demo') || desc.includes('demo') || title.includes('sample') || desc.includes('sample')) {
+            if (isLegacyMockNotification(action.item)) {
+              const docId = String(action.item.id || action.item.docId || '');
+              if (docId) {
+                deleteDocFromCloud('notifications', docId);
+              }
               return;
             }
           }
@@ -2007,24 +2123,28 @@ export const db = {
   // Notifications (Blueprint Sec 56)
   getNotifications: () => {
     const list = getDB<any>('notifications');
-    // Ensure all returned notifications are genuine live events and not legacy demo data
-    return list.filter((n: any) => {
-      if (!n || !n.title) return false;
-      const text = `${n.title} ${n.description || ''}`.toLowerCase();
-      if (text.includes('demo') || text.includes('sample') || text.includes('test order')) {
-        return false;
-      }
-      return true;
-    });
+    // Ensure all returned notifications are genuine live events, cleansed of mock data, with dynamic real-time timestamps
+    return list
+      .filter((n: any) => !isLegacyMockNotification(n))
+      .map((n: any) => ({
+        ...n,
+        time: formatNotificationTime(n)
+      }));
   },
-  addNotification: (n: { category: 'Booking' | 'Order' | 'Payment' | 'Inventory' | 'Delivery' | 'System'; title: string; description: string }) => {
-    const list = getDB<any>('notifications');
+  addNotification: (n: {
+    category: 'Booking' | 'Order' | 'Payment' | 'Inventory' | 'Delivery' | 'System';
+    title: string;
+    description: string;
+    createdAt?: string;
+  }) => {
+    const list = getDB<any>('notifications').filter((existing: any) => !isLegacyMockNotification(existing));
+    const createdAt = n.createdAt || new Date().toISOString();
     const item = {
       id: generateId('notif'),
       ...n,
-      time: 'Just now',
-      read: false,
-      createdAt: new Date().toISOString()
+      createdAt,
+      time: formatNotificationTime({ createdAt, description: n.description }),
+      read: false
     };
     list.unshift(item);
     setDB('notifications', list);
@@ -2032,9 +2152,25 @@ export const db = {
     return item;
   },
   markAllNotificationsRead: () => {
-    const list = getDB<any>('notifications').map(n => ({ ...n, read: true }));
+    const list = getDB<any>('notifications')
+      .filter((n: any) => !isLegacyMockNotification(n))
+      .map(n => {
+        const updated = { ...n, read: true };
+        syncDocToCloud('notifications', updated.id, updated);
+        return updated;
+      });
     setDB('notifications', list);
     notifyListeners();
+  },
+  markNotificationRead: (id: string) => {
+    const list = getDB<any>('notifications');
+    const idx = list.findIndex(n => n.id === id);
+    if (idx !== -1) {
+      list[idx] = { ...list[idx], read: true };
+      setDB('notifications', list);
+      syncDocToCloud('notifications', list[idx].id, list[idx]);
+      notifyListeners();
+    }
   },
   deleteNotification: (id: string) => {
     const list = getDB<any>('notifications').filter(n => n.id !== id);
@@ -2044,10 +2180,30 @@ export const db = {
   },
   clearAllNotifications: () => {
     const list = getDB<any>('notifications');
-    list.forEach(n => deleteDocFromCloud('notifications', n.id));
+    list.forEach(n => {
+      if (n && n.id) {
+        deleteDocFromCloud('notifications', n.id);
+      }
+    });
     setDB('notifications', []);
     localStorage.setItem('hr_notifications', JSON.stringify([]));
     notifyListeners();
+  },
+  purgeMockNotifications: () => {
+    const list = getDB<any>('notifications');
+    const cleaned = list.filter((n: any) => {
+      if (isLegacyMockNotification(n)) {
+        if (n && n.id) {
+          deleteDocFromCloud('notifications', n.id);
+        }
+        return false;
+      }
+      return true;
+    });
+    setDB('notifications', cleaned);
+    localStorage.setItem('hr_notifications', JSON.stringify(cleaned));
+    notifyListeners();
+    return cleaned.length;
   },
 
   // Global Dynamic Search (Blueprint Sec 62)

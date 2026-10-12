@@ -214,12 +214,29 @@ export default function Products({ onNavigate }: ProductsProps) {
   };
 
   useEffect(() => {
+    // Ensure core products exist on mount
+    db.restoreCoreProducts();
     setProducts(db.getProducts());
     const unsub = db.subscribe(() => setProducts(db.getProducts()));
     return unsub;
   }, []);
 
   const refresh = () => setProducts(db.getProducts());
+
+  const handleRestoreCoreCones = () => {
+    db.restoreCoreProducts();
+    refresh();
+    showAlert({
+      type: 'success',
+      title: 'Products Restored',
+      message: 'Standard 20gm, 25gm, and 30gm Organic Rajasthani Henna Cones have been successfully restored to your catalog and synced to Cloud Storage.'
+    });
+  };
+
+  const has20gm = products.some(p => (p.size && p.size.toLowerCase().includes('20')) || p.name.toLowerCase().includes('20gm'));
+  const has25gm = products.some(p => (p.size && p.size.toLowerCase().includes('25')) || p.name.toLowerCase().includes('25gm'));
+  const has30gm = products.some(p => (p.size && p.size.toLowerCase().includes('30')) || p.name.toLowerCase().includes('30gm'));
+  const isMissingCore = !has20gm || !has25gm || !has30gm;
 
   const categories = ['all', ...Array.from(new Set(products.map(p => p.category)))];
   const filtered = products.filter(p => {
@@ -249,7 +266,7 @@ export default function Products({ onNavigate }: ProductsProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* View Switcher */}
           <div className="flex items-center bg-[#FAF8F3] border border-[#E8E0D4] rounded-xl p-1">
             <button
@@ -284,6 +301,14 @@ export default function Products({ onNavigate }: ProductsProps) {
           )}
 
           <button
+            onClick={handleRestoreCoreCones}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-[#720000] bg-[#FAF8F3] border border-[#E8E0D4] hover:bg-[#F5EFEB] transition cursor-pointer"
+            title="Restore 20gm, 25gm, and 30gm Cones"
+          >
+            <Sparkles size={14} /> Restore 20g/25g/30g Cones
+          </button>
+
+          <button
             onClick={() => setShowNew(true)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#720000] hover:bg-[#5a0000] shadow-xs transition"
           >
@@ -291,6 +316,31 @@ export default function Products({ onNavigate }: ProductsProps) {
           </button>
         </div>
       </div>
+
+      {/* Missing Core Cones Notice Banner */}
+      {isMissingCore && (
+        <div className="p-4 rounded-2xl bg-[#FFFDF9] border border-[#E8E0D4] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#720000]/10 text-[#720000] flex items-center justify-center shrink-0">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-[#24201D]">
+                Standard Henna Cones Missing from Catalog
+              </p>
+              <p className="text-[11px] text-[#7A6B5D] mt-0.5">
+                {!has20gm && '• 20gm Cone '} {!has25gm && '• 25gm Cone '} {!has30gm && '• 30gm Cone '} are missing. Click Restore to recover them immediately.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleRestoreCoreCones}
+            className="px-3.5 py-1.5 bg-[#720000] hover:bg-[#5a0000] text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shrink-0 transition shadow-xs cursor-pointer"
+          >
+            <Sparkles size={13} /> Restore 20g, 25g & 30g Cones
+          </button>
+        </div>
+      )}
 
       {/* Prominent Low Stock Alert if any product <= 20 (Requirement: alert at <= 20) */}
       {lowStockCount > 0 && (
@@ -368,10 +418,16 @@ export default function Products({ onNavigate }: ProductsProps) {
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.length === 0 ? (
-            <div className="col-span-full py-12 text-center text-[#7A6B5D] bg-white rounded-2xl border border-[#E8E0D4]">
+            <div className="col-span-full py-12 text-center text-[#7A6B5D] bg-white rounded-2xl border border-[#E8E0D4] p-6">
               <Package size={36} className="mx-auto mb-2 text-gray-300" />
-              <p className="font-semibold text-sm">No products found</p>
-              <p className="text-xs text-gray-400 mt-0.5">Try adjusting your search or category filter.</p>
+              <p className="font-semibold text-sm text-[#24201D]">No products found in catalog</p>
+              <p className="text-xs text-gray-400 mt-0.5 mb-4">Restore standard 20gm, 25gm, and 30gm henna cones with 1 click.</p>
+              <button
+                onClick={handleRestoreCoreCones}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#720000] hover:bg-[#5a0000] shadow-xs transition cursor-pointer"
+              >
+                <Sparkles size={14} /> Restore 20gm, 25gm & 30gm Cones
+              </button>
             </div>
           ) : (
             filtered.map(p => {
@@ -506,7 +562,14 @@ export default function Products({ onNavigate }: ProductsProps) {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="py-12 text-center text-[#7A6B5D] text-sm">
-                      No products found. Click <strong>"Add Cone Variety"</strong> above to create your first product.
+                      <p className="mb-2 font-semibold text-[#24201D]">No products found in catalog.</p>
+                      <p className="text-xs text-gray-400 mb-4">Restore standard 20gm, 25gm, and 30gm henna cones with 1 click.</p>
+                      <button
+                        onClick={handleRestoreCoreCones}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-[#720000] hover:bg-[#5a0000] shadow-xs transition cursor-pointer"
+                      >
+                        <Sparkles size={13} /> Restore 20gm, 25gm & 30gm Cones
+                      </button>
                     </td>
                   </tr>
                 ) : (

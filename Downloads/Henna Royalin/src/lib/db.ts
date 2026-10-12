@@ -523,10 +523,64 @@ export const DEFAULT_RAW_MATERIALS: InventoryItem[] = [
   }
 ];
 
-// Default initial data — clean slate (all demo records removed)
+export const DEFAULT_PRODUCTS: Product[] = [
+  {
+    id: 'prod_henna_20gm',
+    name: 'Organic Rajasthani Cone 20gm',
+    sku: 'MC-20',
+    category: 'Mehendi Cone',
+    size: '20gm',
+    coneWeight: 20,
+    sellingPrice: 100,
+    costPrice: 9,
+    stock: 250,
+    lowStockLevel: 20,
+    supplier: 'Henna Royalin In-house',
+    status: 'active',
+    createdAt: '2026-10-01',
+    addedAt: '2026-10-01T10:00:00.000Z',
+    addedTimeFormatted: '01 Oct 2026, 10:00 AM'
+  },
+  {
+    id: 'prod_henna_25gm',
+    name: 'Organic Rajasthani Cone 25gm',
+    sku: 'MC-25',
+    category: 'Mehendi Cone',
+    size: '25gm',
+    coneWeight: 25,
+    sellingPrice: 120,
+    costPrice: 11,
+    stock: 200,
+    lowStockLevel: 20,
+    supplier: 'Henna Royalin In-house',
+    status: 'active',
+    createdAt: '2026-10-01',
+    addedAt: '2026-10-01T10:00:00.000Z',
+    addedTimeFormatted: '01 Oct 2026, 10:00 AM'
+  },
+  {
+    id: 'prod_henna_30gm',
+    name: 'Organic Rajasthani Cone 30gm',
+    sku: 'MC-30',
+    category: 'Mehendi Cone',
+    size: '30gm',
+    coneWeight: 30,
+    sellingPrice: 150,
+    costPrice: 14,
+    stock: 150,
+    lowStockLevel: 20,
+    supplier: 'Henna Royalin In-house',
+    status: 'active',
+    createdAt: '2026-10-01',
+    addedAt: '2026-10-01T10:00:00.000Z',
+    addedTimeFormatted: '01 Oct 2026, 10:00 AM'
+  }
+];
+
+// Default initial data
 const INITIAL_DATA = {
   customers: [] as Customer[],
-  products: [] as Product[],
+  products: DEFAULT_PRODUCTS,
   services: [] as Service[],
   orders: [] as Order[],
   bookings: [] as Booking[],
@@ -712,6 +766,42 @@ if (typeof localStorage !== 'undefined') {
   }
 }
 
+// Auto-ensure standard 20gm, 25gm, and 30gm henna products exist
+const RESTORE_PRODUCTS_VERSION = 'v1_restore_essential_cones_20_25_30';
+if (typeof localStorage !== 'undefined') {
+  try {
+    if (localStorage.getItem('hr_restore_products_version') !== RESTORE_PRODUCTS_VERSION) {
+      const rawProducts = localStorage.getItem('hr_products');
+      let currentProducts: Product[] = [];
+      try {
+        currentProducts = rawProducts ? JSON.parse(rawProducts) : [];
+      } catch {
+        currentProducts = [];
+      }
+      let updated = false;
+      DEFAULT_PRODUCTS.forEach(dp => {
+        const exists = currentProducts.some((p: any) =>
+          p.id === dp.id ||
+          p.sku?.toLowerCase() === dp.sku.toLowerCase() ||
+          (p.size && dp.size && p.size.toLowerCase() === dp.size.toLowerCase()) ||
+          p.name?.toLowerCase() === dp.name.toLowerCase()
+        );
+        if (!exists) {
+          currentProducts.push(dp);
+          syncDocToCloud('products', dp.id, dp);
+          updated = true;
+        }
+      });
+      if (updated || currentProducts.length === 0) {
+        localStorage.setItem('hr_products', JSON.stringify(currentProducts.length > 0 ? currentProducts : DEFAULT_PRODUCTS));
+      }
+      localStorage.setItem('hr_restore_products_version', RESTORE_PRODUCTS_VERSION);
+    }
+  } catch (err) {
+    console.warn('Product restore error:', err);
+  }
+}
+
 const listeners: Set<() => void> = new Set();
 
 export function notifyListeners(): void {
@@ -857,7 +947,15 @@ export const db = {
   },
 
   // Products
-  getProducts: (): Product[] => getDB<Product>('products'),
+  getProducts: (): Product[] => {
+    const list = getDB<Product>('products');
+    if (list.length === 0) {
+      DEFAULT_PRODUCTS.forEach(p => syncDocToCloud('products', p.id, p));
+      setDB('products', DEFAULT_PRODUCTS);
+      return DEFAULT_PRODUCTS;
+    }
+    return list;
+  },
   addProduct: (p: Omit<Product, 'id' | 'createdAt'>): Product => {
     const item = { ...p, id: generateId('p'), createdAt: new Date().toISOString().split('T')[0] };
     const list = getDB<Product>('products');
@@ -876,6 +974,27 @@ export const db = {
     const list = getDB<Product>('products').filter(p => p.id !== id);
     setDB('products', list);
     deleteDocFromCloud('products', id);
+  },
+  restoreCoreProducts: (): Product[] => {
+    const list = getDB<Product>('products');
+    let addedCount = 0;
+    DEFAULT_PRODUCTS.forEach(dp => {
+      const exists = list.some(p =>
+        p.id === dp.id ||
+        p.sku?.toLowerCase() === dp.sku.toLowerCase() ||
+        (p.size && dp.size && p.size.toLowerCase() === dp.size.toLowerCase()) ||
+        p.name?.toLowerCase() === dp.name.toLowerCase()
+      );
+      if (!exists) {
+        list.push(dp);
+        syncDocToCloud('products', dp.id, dp);
+        addedCount++;
+      }
+    });
+    if (addedCount > 0) {
+      setDB('products', list);
+    }
+    return list;
   },
 
   // Services
